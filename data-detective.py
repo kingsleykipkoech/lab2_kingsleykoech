@@ -1,20 +1,32 @@
 import csv
+import sys
+import os
 import time
 
-def load_tweets():
-	tweets = []
-	try:
-		with open("twitter_dataset.csv", "r", encoding="utf-8") as file:
-			reader = csv.DictReader(file)
-			for row in reader:
-				tweets.append(row)
-	except FileNotFoundError:
-		print("Error: could not find the file 'twitter_dataset.csv'.")
-		print("Make sure twitter_dataset.csv is in this same folder.")
-	return tweets
 
-# Quest 1: drop tweets with no text, fill blank Likes and Retweets with 0
+def load_raw_data(filename):
+    """
+    Loads the CSV file into a list of dictionaries exactly as it is (messy).
+    """
+    if not os.path.exists(filename):
+        print(f"Error: The file '{filename}' was not found.")
+        sys.exit(1)
+
+    raw_tweets = []
+    with open(filename, mode='r', encoding='utf-8') as file:
+        reader = csv.DictReader(file)
+        for row in reader:
+            raw_tweets.append(row)
+
+    return raw_tweets
+
+
 def clean_data(tweets):
+    """
+    QUEST 1: Handle missing fields.
+    Check for missing text, and replace empty likes/retweets with 0.
+    Return a clean list of tweets.
+    """
     clean_tweets = []
     removed = 0
     fixed = 0
@@ -35,85 +47,105 @@ def clean_data(tweets):
         tweet["Likes"] = int(tweet["Likes"])
         tweet["Retweets"] = int(tweet["Retweets"])
         clean_tweets.append(tweet)
-    print("          QUEST 1          ")
-    print("____________________________\n")
-    print("Data cleaning  is being done.....:")
+
+    print("Data cleaning is being done.....:")
     time.sleep(2)
     print(f"     Removed {removed} tweets with no text.")
-    print(f"     Fixed {fixed} blank Likes or Retweets values.\n \n")
+    print(f"     Fixed {fixed} blank Likes or Retweets values.\n\n")
     return clean_tweets
 
 
-# Quest 2: find the single tweet with the most Likes
-def find_most_liked(tweets):
+def find_viral_tweet(tweets):
+    """
+    QUEST 2: Loop through the list to find the tweet with the highest 'Likes'.
+    Do not use the max() function.
+    """
     if len(tweets) == 0:
         print("No tweets to check.")
         return
+
     most_liked_tweet = tweets[0]
     for tweet in tweets:
         if tweet["Likes"] > most_liked_tweet["Likes"]:
             most_liked_tweet = tweet
-    print("          QUEST 2          ")
-    print("____________________________\n")
+
     print("Most viral tweet:")
-    print(f"  Username:  {most_liked_tweet['Username']}")
+    print(f"  Username: {most_liked_tweet['Username']}")
     print(f"  Likes: {most_liked_tweet['Likes']}")
     well_indented = most_liked_tweet['Text'].replace("\n", "\n    ")
-    print(f"Text:\n    {well_indented}\n\n")
+    print(f"  Text:\n    {well_indented}\n\n")
 
-    print("          QUEST 3           ")
-    print("____________________________\n")
-    print("Sorting to  get top 10 most liked tweets.....")
-    
 
-# Quest 3: Sorting to  get top 10 most liked tweet
-def sort_by_likes(tweets):
-      sorted_tweets = []
-      for tweet in tweets:
-          sorted_tweets.append(tweet)
+def custom_sort_by_likes(tweets):
+    """
+    QUEST 3: Implement Bubble Sort or Selection Sort to sort the list
+    by 'Likes' in descending order. NO .sort() allowed!
+    """
+    sorted_tweets = []
+    for tweet in tweets:
+        sorted_tweets.append(tweet)
 
-      total_tweets = len(sorted_tweets)
-      for position in range(total_tweets):
-          most_likes_position = position
-          for next_position in range(position + 1, total_tweets):
-              if sorted_tweets[next_position]["Likes"] > sorted_tweets[most_likes_position]["Likes"]:
-                  most_likes_position = next_position
-          sorted_tweets[position], sorted_tweets[most_likes_position] = sorted_tweets[most_likes_position], sorted_tweets[position]
-      return sorted_tweets
+    total_tweets = len(sorted_tweets)
+    for position in range(total_tweets):
+        most_likes_position = position
+        for next_position in range(position + 1, total_tweets):
+            if sorted_tweets[next_position]["Likes"] > sorted_tweets[most_likes_position]["Likes"]:
+                most_likes_position = next_position
+        sorted_tweets[position], sorted_tweets[most_likes_position] = sorted_tweets[most_likes_position], sorted_tweets[position]
 
-# Quest 4: collect every tweet whose text contains the search word
-def search_tweets(tweets, word):
+    return sorted_tweets
+
+
+def search_tweets(tweets, keyword):
+    """
+    QUEST 4: Search for a keyword and extract matching tweets into a new list.
+    """
     matching_tweets = []
     for tweet in tweets:
-        if word.lower() in tweet["Text"].lower():
+        if keyword.lower() in tweet["Text"].lower():
             matching_tweets.append(tweet)
+
     time.sleep(2)
     if len(matching_tweets) == 1:
-        print(f'Found 1 tweet containing "{word}":')
+        print(f'Found 1 tweet containing "{keyword}":')
     else:
-        print(f'Found {len(matching_tweets)} tweets containing the word "{word}":')
+        print(f'Found {len(matching_tweets)} tweets containing the word "{keyword}":')
     for tweet in matching_tweets:
         print(f"By @{tweet['Username']}\n{tweet['Text']}")
         print("______________________________________________________________\n")
     return matching_tweets
 
 
-def main():
-    tweets = load_tweets()
-    if len(tweets) == 0:
-        return  
-    tweets = clean_data(tweets)
-    find_most_liked(tweets)
-    sorted_tweets = sort_by_likes(tweets)
-    top_ten = sorted_tweets[0:10]
-    position =1
+if __name__ == "__main__":
+    # Load the messy data
+    dataset = load_raw_data("twitter_dataset.csv")
+    print(f"Loaded {len(dataset)} raw tweets.\n")
+
+    if len(dataset) == 0:
+        print("The file is empty. Nothing to analyze.")
+        sys.exit(0)
+
+    print("          QUEST 1          ")
+    print("____________________________\n")
+    clean_dataset = clean_data(dataset)
+
+    print("          QUEST 2          ")
+    print("____________________________\n")
+    find_viral_tweet(clean_dataset)
+
+    print("          QUEST 3          ")
+    print("____________________________\n")
+    print("Sorting to get top 10 most liked tweets.....")
+    sorted_dataset = custom_sort_by_likes(clean_dataset)
+    top_ten = sorted_dataset[0:10]
+    position = 1
     for tweet in top_ten:
         print(f"{position}. {tweet['Likes']} likes - @{tweet['Username']}")
-        position =position +1
+        position = position + 1
     print("\n\n")
+
     print("          QUEST 4          ")
-    print("_____________________________\n")
-    word = input("Enter a word to search for: ")
+    print("____________________________\n")
+    keyword = input("Enter a word to search for: ")
     print("Searching for your word..........:\n")
-    search_tweets(tweets, word)
-main()
+    search_tweets(clean_dataset, keyword)
